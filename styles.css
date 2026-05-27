@@ -272,16 +272,21 @@ input {
 
 .split-layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 1fr;
   gap: 18px;
 }
 
 .manual-pool {
-  min-height: 24rem;
+  order: 2;
+  min-height: auto;
   padding: 16px;
   border: 2px solid var(--line);
   border-radius: 14px;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.group-board {
+  order: 1;
 }
 
 .small-note {
@@ -293,6 +298,7 @@ input {
 
 .name-list {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 8px;
 }
 
@@ -336,9 +342,59 @@ input {
 
 .group-card {
   padding: 16px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 253, 255, 0.96)),
-    #ffffff;
+  border-color: var(--group-border, var(--line));
+  background: var(--group-bg, #ffffff);
+  box-shadow: 0 16px 32px var(--group-shadow, rgba(54, 74, 95, 0.12));
+}
+
+.group-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 8px;
+  background: var(--group-accent, var(--teal));
+}
+
+.group-theme-0 {
+  --group-accent: #ff6b8a;
+  --group-border: #ffd3dc;
+  --group-bg: linear-gradient(180deg, #fff7fa, #ffffff);
+  --group-shadow: rgba(255, 107, 138, 0.15);
+}
+
+.group-theme-1 {
+  --group-accent: #4f8cff;
+  --group-border: #cfe0ff;
+  --group-bg: linear-gradient(180deg, #f4f8ff, #ffffff);
+  --group-shadow: rgba(79, 140, 255, 0.15);
+}
+
+.group-theme-2 {
+  --group-accent: #20c7b5;
+  --group-border: #c8f3ee;
+  --group-bg: linear-gradient(180deg, #f1fffd, #ffffff);
+  --group-shadow: rgba(32, 199, 181, 0.15);
+}
+
+.group-theme-3 {
+  --group-accent: #ff9f1c;
+  --group-border: #ffe2b3;
+  --group-bg: linear-gradient(180deg, #fff9ef, #ffffff);
+  --group-shadow: rgba(255, 159, 28, 0.16);
+}
+
+.group-theme-4 {
+  --group-accent: #8b5cf6;
+  --group-border: #ded2ff;
+  --group-bg: linear-gradient(180deg, #f8f4ff, #ffffff);
+  --group-shadow: rgba(139, 92, 246, 0.14);
+}
+
+.group-theme-5 {
+  --group-accent: #66c56c;
+  --group-border: #d3f2d6;
+  --group-bg: linear-gradient(180deg, #f4fff5, #ffffff);
+  --group-shadow: rgba(102, 197, 108, 0.15);
 }
 
 .group-head {
@@ -346,7 +402,7 @@ input {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 12px;
+  margin: 6px 0 12px;
 }
 
 .member-list {
@@ -355,16 +411,16 @@ input {
   align-content: start;
   min-height: 8rem;
   margin-bottom: 12px;
-  border: 2px dashed #cfe8ee;
+  border: 2px dashed var(--group-border, #cfe8ee);
   border-radius: 14px;
   padding: 10px;
-  background: #f7fcff;
+  background: rgba(255, 255, 255, 0.68);
   transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
 }
 
 .member-list.drag-over {
-  border-color: var(--teal);
-  background: #e9fffb;
+  border-color: var(--group-accent, var(--teal));
+  background: rgba(255, 255, 255, 0.92);
   transform: scale(1.01);
 }
 

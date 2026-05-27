@@ -342,7 +342,7 @@ function renderGroups() {
   const className = el.groupClass.value;
   const groups = state.groups[className] || [];
   renderManualPool(className, groups);
-  el.groupBoard.innerHTML = groups.map((group) => groupCard(className, group)).join("") || emptyState("Jana kumpulan rawak atau sediakan kumpulan manual.");
+  el.groupBoard.innerHTML = groups.map((group, index) => groupCard(className, group, index)).join("") || emptyState("Jana kumpulan rawak atau sediakan kumpulan manual.");
   el.groupBoard.querySelectorAll("[data-reward-group]").forEach((button) => {
     button.addEventListener("click", () => updateGroupScore(className, button.dataset.rewardGroup, Number(button.dataset.delta), button));
   });
@@ -386,12 +386,12 @@ function renderManualPool(className, groups) {
   });
 }
 
-function groupCard(className, group) {
+function groupCard(className, group, groupIndex) {
   const members = group.members
     .map((id) => state.students.find((student) => student.id === id))
     .filter(Boolean);
   return `
-    <article class="group-card" data-group-card="${escapeHtml(group.id)}">
+    <article class="group-card group-theme-${groupIndex % 6}" data-group-card="${escapeHtml(group.id)}">
       <div class="group-head">
         <div>
           <div class="group-title">${escapeHtml(group.name)}</div>
