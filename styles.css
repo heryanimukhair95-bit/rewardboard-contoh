@@ -225,8 +225,7 @@ input {
 }
 
 .student-card,
-.group-card,
-.leader-row {
+.group-card {
   position: relative;
   overflow: hidden;
   border: 2px solid var(--line);
@@ -308,12 +307,24 @@ input {
   padding: 8px 10px;
   background: #f2fffd;
   font-weight: 850;
+  transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+}
+
+.name-chip[draggable="true"] {
+  cursor: grab;
+}
+
+.name-chip.dragging {
+  opacity: 0.45;
+  transform: scale(0.98);
+  box-shadow: 0 12px 24px rgba(32, 199, 181, 0.18);
 }
 
 .name-chip.assigned {
   color: #8b969d;
   border-color: #e0e4e8;
   background: #eef1f4;
+  cursor: not-allowed;
 }
 
 .name-chip select {
@@ -325,6 +336,9 @@ input {
 
 .group-card {
   padding: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 253, 255, 0.96)),
+    #ffffff;
 }
 
 .group-head {
@@ -338,14 +352,55 @@ input {
 .member-list {
   display: grid;
   gap: 7px;
-  min-height: 5rem;
+  align-content: start;
+  min-height: 8rem;
+  margin-bottom: 12px;
+  border: 2px dashed #cfe8ee;
+  border-radius: 14px;
+  padding: 10px;
+  background: #f7fcff;
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.member-list.drag-over {
+  border-color: var(--teal);
+  background: #e9fffb;
+  transform: scale(1.01);
 }
 
 .member-pill {
-  border-radius: 999px;
-  padding: 7px 11px;
-  background: #fff5ce;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #ffe4a3;
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: linear-gradient(135deg, #fff8dc, #fffdf6);
   font-weight: 850;
+  box-shadow: 0 6px 14px rgba(213, 123, 0, 0.08);
+}
+
+.member-pill b {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: #6b4300;
+  background: var(--yellow);
+  font-size: 0.78rem;
+}
+
+.drop-hint {
+  display: grid;
+  place-items: center;
+  min-height: 5.5rem;
+  border-radius: 12px;
+  color: #6b8797;
+  background: rgba(255, 255, 255, 0.65);
+  font-weight: 850;
+  text-align: center;
 }
 
 .empty-state {
@@ -445,16 +500,49 @@ input {
 }
 
 .leaderboard {
-  display: grid;
-  gap: 10px;
+  overflow: auto;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  background: #ffffff;
 }
 
-.leader-row {
-  display: grid;
-  grid-template-columns: 54px 1fr auto;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+.leader-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+}
+
+.leader-table th,
+.leader-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.leader-table th {
+  color: #0d5d56;
+  background: #ecfffb;
+  font-size: 0.84rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.leader-table tbody tr {
+  background: #ffffff;
+}
+
+.leader-table tbody tr:nth-child(even) {
+  background: #fbfdff;
+}
+
+.leader-table tbody tr.top-rank {
+  background: linear-gradient(90deg, rgba(255, 212, 73, 0.18), rgba(32, 199, 181, 0.1));
+}
+
+.leader-table tbody tr:last-child td {
+  border-bottom: 0;
 }
 
 .rank {
@@ -466,6 +554,20 @@ input {
   color: #ffffff;
   background: linear-gradient(135deg, var(--rose), var(--amber));
   font-weight: 950;
+}
+
+.leader-stars {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 82px;
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #5b3900;
+  background: linear-gradient(135deg, #fff3ad, #ffd449);
+  font-size: 1.05rem;
+  font-weight: 950;
+  box-shadow: 0 8px 18px rgba(213, 123, 0, 0.14);
 }
 
 .bar {
@@ -493,9 +595,9 @@ input {
 .flying-star {
   position: absolute;
   color: var(--yellow);
-  font-size: 28px;
+  font-size: 32px;
   filter: drop-shadow(0 5px 8px rgba(120, 76, 0, 0.28));
-  animation: flyStar 900ms ease-out forwards;
+  animation: flyStar 950ms ease-out forwards;
 }
 
 .pop {
@@ -570,11 +672,7 @@ input {
     min-height: auto;
   }
 
-  .leader-row {
-    grid-template-columns: 44px 1fr;
-  }
-
-  .leader-row .stars {
-    grid-column: 2;
+  .leader-table {
+    min-width: 560px;
   }
 }

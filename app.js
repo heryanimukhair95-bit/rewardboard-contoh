@@ -346,6 +346,11 @@ function renderGroups() {
   el.groupBoard.querySelectorAll("[data-reward-group]").forEach((button) => {
     button.addEventListener("click", () => updateGroupScore(className, button.dataset.rewardGroup, Number(button.dataset.delta), button));
   });
+  el.groupBoard.querySelectorAll("[data-group-drop]").forEach((dropZone) => {
+    dropZone.addEventListener("dragover", allowGroupDrop);
+    dropZone.addEventListener("dragleave", clearGroupDrop);
+    dropZone.addEventListener("drop", (event) => dropStudentToGroup(event, className, dropZone.dataset.groupDrop));
+  });
 }
 
 function renderManualPool(className, groups) {
@@ -354,7 +359,7 @@ function renderManualPool(className, groups) {
   el.manualStudentList.innerHTML = getStudentsByClass(className).map((student) => {
     const isAssigned = assigned.has(student.id);
     return `
-      <div class="name-chip ${isAssigned ? "assigned" : ""}">
+      <div class="name-chip ${isAssigned ? "assigned" : ""}" draggable="${!isAssigned && groups.length ? "true" : "false"}" data-drag-student="${escapeHtml(student.id)}">
         <span>${escapeHtml(student.name)}</span>
         <select data-assign-student="${escapeHtml(student.id)}" ${isAssigned || !groups.length ? "disabled" : ""}>
           <option value="">Pilih</option>
@@ -366,6 +371,18 @@ function renderManualPool(className, groups) {
 
   el.manualStudentList.querySelectorAll("[data-assign-student]").forEach((select) => {
     select.addEventListener("change", () => assignStudentToGroup(className, select.dataset.assignStudent, select.value));
+  });
+  el.manualStudentList.querySelectorAll("[data-drag-student]").forEach((chip) => {
+    chip.addEventListener("dragstart", (event) => {
+      if (chip.classList.contains("assigned")) {
+        event.preventDefault();
+        return;
+      }
+      event.dataTransfer.setData("text/plain", chip.dataset.dragStudent);
+      event.dataTransfer.effectAllowed = "move";
+      chip.classList.add("dragging");
+    });
+    chip.addEventListener("dragend", () => chip.classList.remove("dragging"));
   });
 }
 
@@ -382,8 +399,8 @@ function groupCard(className, group) {
         </div>
         <div class="stars">⭐ ${group.stars || 0}</div>
       </div>
-      <div class="member-list">
-        ${members.map((student) => `<span class="member-pill">${escapeHtml(student.name)}</span>`).join("") || `<span class="small-note">Belum ada ahli</span>`}
+      <div class="member-list" data-group-drop="${escapeHtml(group.id)}">
+        ${members.map((student, index) => `<span class="member-pill"><b>${index + 1}</b>${escapeHtml(student.name)}</span>`).join("") || `<span class="drop-hint">Lepaskan nama murid di sini</span>`}
       </div>
       <div class="card-actions">
         <button class="star-btn" data-reward-group="${escapeHtml(group.id)}" data-delta="1" type="button">+ ⭐</button>
@@ -403,9 +420,27 @@ function assignStudentToGroup(className, studentId, groupId) {
   renderAll();
 }
 
+function allowGroupDrop(event) {
+  event.preventDefault();
+  event.currentTarget.classList.add("drag-over");
+  event.dataTransfer.dropEffect = "move";
+}
+
+function clearGroupDrop(event) {
+  event.currentTarget.classList.remove("drag-over");
+}
+
+function dropStudentToGroup(event, className, groupId) {
+  event.preventDefault();
+  event.currentTarget.classList.remove("drag-over");
+  const studentId = event.dataTransfer.getData("text/plain");
+  assignStudentToGroup(className, studentId, groupId);
+}
+
 function updateStudentScore(studentId, delta, sourceButton) {
   const student = state.students.find((item) => item.id === studentId);
   if (!student) return;
+  const rewardOrigin = getRewardOrigin(sourceButton);
   state.scores[studentId] = Math.max(0, (state.scores[studentId] || 0) + delta);
   saveLocalState();
   logReward({
@@ -417,12 +452,13 @@ function updateStudentScore(studentId, delta, sourceButton) {
     affectedStudents: [student.name]
   });
   renderAll();
-  animateReward(sourceButton, delta);
+  animateReward(rewardOrigin, delta);
 }
 
 function updateGroupScore(className, groupId, delta, sourceButton) {
   const group = (state.groups[className] || []).find((item) => item.id === groupId);
   if (!group) return;
+  const rewardOrigin = getRewardOrigin(sourceButton);
   group.stars = Math.max(0, (group.stars || 0) + delta);
   const affectedStudents = [];
   group.members.forEach((studentId) => {
@@ -440,7 +476,7 @@ function updateGroupScore(className, groupId, delta, sourceButton) {
     affectedStudents
   });
   renderAll();
-  animateReward(sourceButton, delta);
+  animateReward(rewardOrigin, delta);
 }
 
 function setPickerMode(mode) {
@@ -529,20 +565,35 @@ function setLeaderMode(mode) {
 function renderLeaderboard() {
   const className = el.leaderClass.value;
   const entries = state.activeLeaderMode === "student"
-    ? getStudentsByClass(className).map((student) => ({ name: student.name, score: state.scores[student.id] || 0 }))
-    : (state.groups[className] || []).map((group) => ({ name: group.name, score: group.stars || 0 }));
+    ? getStudentsByClass(className).map((student) => ({ name: student.name, score: state.scores[student.id] || 0, detail: student.className }))
+    : (state.groups[className] || []).map((group) => ({ name: group.name, score: group.stars || 0, detail: `${group.members.length} ahli` }));
   entries.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
   const max = Math.max(1, ...entries.map((entry) => entry.score));
-  el.leaderboardList.innerHTML = entries.map((entry, index) => `
-    <div class="leader-row">
-      <span class="rank">${index + 1}</span>
-      <div>
-        <strong>${escapeHtml(entry.name)}</strong>
-        <div class="bar"><span style="width:${Math.max(4, (entry.score / max) * 100)}%"></span></div>
-      </div>
-      <span class="stars">⭐ ${entry.score}</span>
-    </div>
-  `).join("") || emptyState("Tiada data leaderboard.");
+  el.leaderboardList.innerHTML = entries.length ? `
+    <table class="leader-table">
+      <thead>
+        <tr>
+          <th>Kedudukan</th>
+          <th>${state.activeLeaderMode === "student" ? "Nama Murid" : "Nama Kumpulan"}</th>
+          <th>Maklumat</th>
+          <th>Bintang</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${entries.map((entry, index) => `
+          <tr class="${index < 3 ? "top-rank" : ""}">
+            <td><span class="rank">${index + 1}</span></td>
+            <td>
+              <strong>${escapeHtml(entry.name)}</strong>
+              <div class="bar"><span style="width:${Math.max(4, (entry.score / max) * 100)}%"></span></div>
+            </td>
+            <td>${escapeHtml(entry.detail)}</td>
+            <td><span class="leader-stars">⭐ ${entry.score}</span></td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  ` : emptyState("Tiada data leaderboard.");
 }
 
 function setTimer(seconds) {
@@ -613,9 +664,24 @@ function logReward(payload) {
   }).catch(() => {});
 }
 
-function animateReward(sourceButton, delta) {
-  const source = sourceButton || document.body;
-  const rect = source.getBoundingClientRect();
+function getRewardOrigin(sourceButton) {
+  if (!sourceButton) return null;
+  const rect = sourceButton.getBoundingClientRect();
+  return {
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height
+  };
+}
+
+function animateReward(origin, delta) {
+  const rect = origin || {
+    left: window.innerWidth / 2,
+    top: window.innerHeight / 2,
+    width: 1,
+    height: 1
+  };
   for (let i = 0; i < 10; i += 1) {
     const star = document.createElement("span");
     star.className = "flying-star";
@@ -627,11 +693,6 @@ function animateReward(sourceButton, delta) {
     star.style.animationDelay = `${i * 22}ms`;
     el.starBurstLayer.appendChild(star);
     setTimeout(() => star.remove(), 1100);
-  }
-  const card = source.closest(".student-card, .group-card, .picker-stage, .timer-card");
-  if (card) {
-    card.classList.add("pop");
-    setTimeout(() => card.classList.remove("pop"), 450);
   }
 }
 
